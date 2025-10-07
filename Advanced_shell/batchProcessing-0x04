@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Task 5: Parallel Data Fetching
+# Fetch data for multiple Pokémon in parallel using background processes
+
+API_BASE="https://pokeapi.co/api/v2/pokemon"
+OUTPUT_DIR="pokemon_data"
+ERROR_FILE="errors.txt"
+
+# List of Pokémon to fetch
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Function to fetch a single Pokémon
+fetch_pokemon() {
+    local pokemon=$1
+    local output_file="$OUTPUT_DIR/${pokemon}.json"
+    
+    echo "Fetching data for $pokemon..."
+    
+    # Make API request and capture HTTP status code
+    http_code=$(curl -s -o "$output_file" -w "%{http_code}" "${API_BASE}/${pokemon}")
+    
+    if [ "$http_code" = "200" ]; then
+        echo "Saved data to $output_file ✅"
+    else
+        echo "❌ Failed to fetch $pokemon (HTTP $http_code)" | tee -a "$ERROR_FILE"
+        echo "$(date): Failed to fetch $pokemon (HTTP $http_code)" >> "$ERROR_FILE"
+    fi
+}
+
+# Launch all fetch operations in parallel
+echo "Starting parallel data fetching..."
+pids=()
+
+for pokemon in "${POKEMON_LIST[@]}"; do
+    fetch_pokemon "$pokemon" &
+    pids+=($!)
+done
+
+# Wait for all background processes to complete
+echo "Waiting for all processes to complete..."
+for pid in "${pids[@]}"; do
+    wait "$pid"
+done
+
+echo "✅ All parallel fetches complete!"

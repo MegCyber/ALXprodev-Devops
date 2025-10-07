@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Task 2 & 4: Batch Pokémon Data Retrieval with Error Handling and Retry Logic
+# Fetch data for multiple Pokémon with retry mechanism
+
+API_BASE="https://pokeapi.co/api/v2/pokemon"
+OUTPUT_DIR="pokemon_data"
+ERROR_FILE="errors.txt"
+MAX_RETRIES=3
+DELAY=1
+
+# List of Pokémon to fetch
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Function to fetch data with retry logic
+fetch_pokemon() {
+    local pokemon=$1
+    local output_file="$OUTPUT_DIR/${pokemon}.json"
+    local attempts=0
+    
+    echo "Fetching data for $pokemon..."
+    
+    while [ $attempts -lt $MAX_RETRIES ]; do
+        attempts=$((attempts + 1))
+        
+        # Make API request and capture HTTP status code
+        http_code=$(curl -s -o "$output_file" -w "%{http_code}" "${API_BASE}/${pokemon}")
+        
+        if [ "$http_code" = "200" ]; then
+            echo "Saved data to $output_file ✅"
+            return 0
+        else
+            echo "Attempt $attempts failed with HTTP code $http_code"
+            if [ $attempts -lt $MAX_RETRIES ]; then
+                echo "Retrying in $DELAY seconds..."
+                sleep $DELAY
+            fi
+        fi
+    done
+    
+    # Log error after all retries failed
+    echo "❌ Failed to fetch $pokemon after $MAX_RETRIES attempts" | tee -a "$ERROR_FILE"
+    echo "$(date): Failed to fetch $pokemon after $MAX_RETRIES attempts" >> "$ERROR_FILE"
+    return 1
+}
+
+# Main loop
+for pokemon in "${POKEMON_LIST[@]}"; do
+    fetch_pokemon "$pokemon"
+    # Add delay between requests to avoid rate limiting
+    sleep $DELAY
+done
+
+echo "Batch processing complete!"
