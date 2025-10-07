@@ -18,10 +18,10 @@ name=$(jq -r '.name' "$DATA_FILE" | sed 's/\b\w/\u&/')
 type=$(jq -r '.types[0].type.name' "$DATA_FILE" | sed 's/\b\w/\u&/')
 
 # Extract weight (convert from hectograms to kg)
-weight=$(jq '.weight' "$DATA_FILE" | awk '{print $1/10}')
+formatted_weight=$(jq '.weight' "$DATA_FILE" | awk '{print $1/10}')
 
 # Extract height (convert from decimeters to meters)
-height=$(jq '.height' "$DATA_FILE" | awk '{print $1/10}')
+formatted_height=$(jq '.height' "$DATA_FILE" | awk '{print $1/10}')
 
 # Format the output
-echo "$name is of type $type, weighs ${weight}kg, and is ${height}m tall."
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
